@@ -74,6 +74,7 @@ class DocumentWordVector:
             vector.append(0);
         #add the vector model to the matrix
         self._vsm_.append(vector);
+        fd.close();
     #reverse the vsm to term-document matrix
     vsm = [];
     for i in range(len(self._vsm_[0])):
@@ -88,6 +89,24 @@ class DocumentWordVector:
   def get_vsm(self):
     return self._vsm_;
   
+  def build_td_vector(self, file):
+    vector = [];
+    worddict = {};
+    fd = open(file, 'r');
+    for line in fd:
+      words = self._word_segment.segment_word(line);
+      for word in words:
+        if worddict.has_key(word):
+          worddict[word] = worddict[word] + 1;
+        else:
+          worddict[word] = 1;
+    for word in self._dict_:
+      if word in worddict:
+        vector.append(worddict[word]);
+      else:
+        vector.append(0);
+    fd.close();
+    return vector;
 
 class LatentSemanticIndex:
   
@@ -97,15 +116,17 @@ class LatentSemanticIndex:
     self._Vh_ = [];  # the V matrix
     self.M = 0;
     self.N = 0;
+    self._rU_ = [];
+    self._rSig_ = [];
+    self._rVh_ = [];
   
   def svd(self, matrix):
     matrix = numpy.mat(matrix);
     self._U_, self._SIGMA_, self._Vh_ = linalg.svd(matrix);
-    #do the svd 
+    #perform the SVD 
     self.M, self.N = matrix.shape;
     Sig = numpy.mat(linalg.diagsvd(self._SIGMA_, self.M, self.N)) 
     print Sig
-    #print (U_) * (Sig) * (Vh_);
 
   def dimension_reduction(self, target_dim):
     UList = [];
@@ -126,12 +147,25 @@ class LatentSemanticIndex:
     
     #construct the new matrix
     newMatrix =  (ReducedU) * (Sig) * (ReducedVh);
-    pass; 
+    print newMatrix
+    self._rU_ = ReducedU;
+    self._rSig_ = Sig;
+    self._rVh_ = ReducedVh;
+    return ReducedU, Sig, ReducedVh;
 
-vsm = DocumentWordVector();
-vsm.set_source('/Users/liushouqun/Development/github/text-mining/lsi/test') 
+  def cosin_similarity(self, vector):
+    similarity = [];
+    return similarity;
 
-lsi = LatentSemanticIndex();
-lsi.svd(vsm.get_vsm());
-lsi.dimension_reduction(1);
 
+if __name__ == "__main__":
+  vsm = DocumentWordVector();
+  vsm.set_source('/home/liusq/Project/Github/data-mining-library/lsi/corpus');
+
+  lsi = LatentSemanticIndex();
+  lsi.svd(vsm.get_vsm());
+  lsi.dimension_reduction(2);
+
+  qvector = vsm.build_td_vector('/home/liusq/Project/Github/data-mining-library/lsi/test/1.txt');
+  print qvector;
+  simvector = lsi.cosin_similarity(qvector); 
